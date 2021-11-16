@@ -89,9 +89,7 @@ public class OrderRestController {
                     @ApiResponse(responseCode = "401", description = "Unauthorized access. Invalid credentials"),
                     @ApiResponse(responseCode = "403", description = "Forbidden to access the API")
             }
-
     )
-
     public Order saveOrder(
             @Parameter (required = true, name = "order", schema = @Schema(implementation = Order.class),description = "Order entity to be saved")
             @RequestBody

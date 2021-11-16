@@ -28,17 +28,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidOrderInput(MethodArgumentNotValidException exception){
-        final List<String> errors = exception.getAllErrors()
-                .stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.toList());
+
+        final List<String> errors = exception
+                                            .getAllErrors()
+                                            .stream()
+                                            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                                            .collect(Collectors.toList());
 
         Map<String, Object> errorResponse = new LinkedHashMap<>();
         errorResponse.put("code", 400);
         errorResponse.put("errors", errors);
         return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
      }
-
 }
 
 @Data
