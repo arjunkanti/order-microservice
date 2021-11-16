@@ -1,0 +1,27 @@
+server:
+  port: 8222
+
+spring:
+  datasource:
+    username: sa
+    password: welcome
+    url: jdbc:h2:mem:orders_db
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /manage
+  endpoint:
+    health:
+      show-details: always
+    shutdown:
+      enabled: true
