@@ -1,0 +1,131 @@
+# application configuration for order-microservice application
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-microservice-cm
+data:
+  application-dev.yml: "server:\r\n  port: 8222\r\n\r\nspring:\r\n  datasource:\r\n
+    \   url: jdbc:h2:mem:orders_db\r\n  jpa:\r\n    hibernate:\r\n      ddl-auto:
+    create\r\n    show-sql: false\r\n    properties:\r\n      hibernate:\r\n        format_sql:
+    true\r\n\r\nmanagement:\r\n  endpoints:\r\n    web:\r\n      exposure:\r\n        include:
+    \"*\"\r\n      base-path: /actuator/health\r\n  endpoint:\r\n    health:\r\n      show-details:
+    always\r\n    shutdown:\r\n      enabled: true\r\n\r\nspringdoc:\r\n  swagger-ui:\r\n
+    \   path: /order-api.html\r\n"
+  application-prod.yml: "server:\r\n  port: 6222\r\n\r\nspring:\r\n  datasource:\r\n
+    \   url: jdbc:h2:mem:orders_db\r\n  jpa:\r\n    hibernate:\r\n      ddl-auto:
+    create\r\n    show-sql: true\r\n    properties:\r\n      hibernate:\r\n        format_sql:
+    true\r\n"
+  application-qa.yml: "server:\r\n  port: 9222\r\n\r\nspring:\r\n  datasource:\r\n
+    \   url: jdbc:mysql://localhost:3306/orders_db\r\n  jpa:\r\n    hibernate:\r\n
+    \     ddl-auto: create\r\n    show-sql: true\r\n    properties:\r\n      hibernate:\r\n
+    \       format_sql: true\r\n"
+---
+# application secrets
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: db-credentials
+data:
+  SPRING_DATASOURCE_PASSWORD: d2VsY29tZQ==
+  SPRING_DATASOURCE_USERNAME: cm9vdA==
+---
+# order microservice
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: order-microservice
+  labels:
+    app: order-microservice
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: order-microservice
+  template:
+    metadata:
+      labels:
+        app: order-microservice
+    spec:
+      containers:
+        - name: order-microservice
+          image: classpathio/order-microservice:latest
+          livenessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 50
+            timeoutSeconds: 30
+            httpGet:
+              port: 8222
+              path: /actuator/health
+          readinessProbe:
+            initialDelaySeconds: 20
+            timeoutSeconds: 3
+            periodSeconds: 5
+            httpGet:
+              port: 8222
+              path: /actutor/health
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+          volumeMounts:
+            - name: order-microservice-config
+              mountPath: /app/config
+              readOnly: true
+          envFrom:
+            - secretRef:
+                name: db-credentials
+      volumes:
+        - name: order-microservice-config
+          configMap:
+            name: order-microservice-cm
+---
+# inventory microservice
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: inventory-microservice
+  labels:
+    app: inventory-microservice
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: inventory-microservice
+  template:
+    metadata:
+      labels:
+        app: inventory-microservice
+    spec:
+      containers:
+        - name: inventory-microservice
+          image: classpathio/inventory-microservice:1.0.0
+---
+# order service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-microservice
+spec:
+  selector:
+    app: order-microservice
+  ports:
+    - port: 80
+      targetPort: 8222
+      protocol: TCP
+  type: ClusterIP
+---
+# inventory service
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-microservice
+spec:
+  selector:
+    app: inventory-microservice
+  ports:
+    - port: 80
+      targetPort: 9222
+      protocol: TCP
+  type: ClusterIP
