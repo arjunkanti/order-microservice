@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @AllArgsConstructor
@@ -28,4 +30,15 @@ public class Order {
     @Min(value = 10000, message = "minimum order price should be 10k")
     @Max(value = 50000, message = "max order price can be 50k")
     private double orderPrice;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private Set<LineItem> lineItems;
+
+    public void addLineItem(LineItem lineItem){
+        if (this.lineItems == null){
+            this.lineItems = new HashSet<>();
+        }
+        this.lineItems.add(lineItem);
+        lineItem.setOrder(this);
+    }
 }

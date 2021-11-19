@@ -18,6 +18,18 @@ spring:
         jwt:
           jwk-set-uri: https://dev-7858070.okta.com/oauth2/default/v1/keys
           issuer-uri: https://dev-7858070.okta.com/oauth2/default
+  cloud:
+    stream:
+      bindings:
+        output:
+          destination: orders-topic-arjun
+          content-type: application/json
+      kafka:
+        binder:
+          zkNodes: 159.89.168.63:9092
+          brokers: 159.89.168.63:9092
+      default-binder: kafka
+
 
 resilience4j:
   circuitbreaker:

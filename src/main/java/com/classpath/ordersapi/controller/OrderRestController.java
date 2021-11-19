@@ -95,6 +95,9 @@ public class OrderRestController {
             @RequestBody
             @Valid
             Order order){
+
+        //to set the bidirectional mapping
+        order.getLineItems().forEach(lineItem -> lineItem.setOrder(order));
         return this.orderService.saveOrder(order);
     }
 }

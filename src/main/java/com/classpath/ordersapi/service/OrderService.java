@@ -6,10 +6,12 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.stream.messaging.Source;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -23,18 +25,23 @@ import java.util.*;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final RestTemplate restTemplate;
+
+    private final Source source;
 
     @Transactional
     //@CircuitBreaker(name = "inventoryservice", fallbackMethod = "fallBackImpl")
     @Retry(name="retryService", fallbackMethod = "fallBackImpl")
     public Order saveOrder(Order order) {
-        log.info("Invoking the Inventory microservice Rest endpoint:::: ");
+        log.info("Sending the order payload the the topic:::: ");
         //update the inventory
         //call the post endpoint on the inventory microservice using rest template/web client
       //  final ResponseEntity<Integer> responseEntity = this.restTemplate.postForEntity("http://localhost:9222/api/v1/inventory", null, Integer.class);
        // log.info("Response from inventory microservice : {} ", responseEntity.getBody());
-        return this.orderRepository.save(order);
+
+        //store the order object as an event object
+        Order savedOrder = this.orderRepository.save(order);
+        this.source.output().send(MessageBuilder.withPayload(savedOrder).build());
+        return savedOrder;
     }
 
     private Order fallBackImpl(Exception exception){
