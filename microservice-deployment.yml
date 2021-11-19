@@ -33,7 +33,7 @@ data:
 ---
 # order microservice
 apiVersion: apps/v1
-kind: ReplicaSet
+kind: Deployment
 metadata:
   name: order-microservice
   labels:
@@ -51,20 +51,6 @@ spec:
       containers:
         - name: order-microservice
           image: classpathio/order-microservice:latest
-          livenessProbe:
-            initialDelaySeconds: 5
-            periodSeconds: 50
-            timeoutSeconds: 30
-            httpGet:
-              port: 8222
-              path: /actuator/health
-          readinessProbe:
-            initialDelaySeconds: 20
-            timeoutSeconds: 3
-            periodSeconds: 5
-            httpGet:
-              port: 8222
-              path: /actutor/health
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: dev
@@ -82,7 +68,7 @@ spec:
 ---
 # inventory microservice
 apiVersion: apps/v1
-kind: ReplicaSet
+kind: Deployment
 metadata:
   name: inventory-microservice
   labels:
@@ -129,3 +115,22 @@ spec:
       targetPort: 9222
       protocol: TCP
   type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: application-ingress
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: pradeep.ekart.com
+      http:
+        paths:
+          - path: /api/v1/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: order-microservice
+                port:
+                  number: 80

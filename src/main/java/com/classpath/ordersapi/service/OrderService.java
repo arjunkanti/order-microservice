@@ -3,6 +3,7 @@ package com.classpath.ordersapi.service;
 import com.classpath.ordersapi.model.Order;
 import com.classpath.ordersapi.repository.OrderRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -24,13 +26,20 @@ public class OrderService {
     private final RestTemplate restTemplate;
 
     @Transactional
-    @CircuitBreaker(name = "inventoryservice")
+    //@CircuitBreaker(name = "inventoryservice", fallbackMethod = "fallBackImpl")
+    @Retry(name="retryService", fallbackMethod = "fallBackImpl")
     public Order saveOrder(Order order) {
+        log.info("Invoking the Inventory microservice Rest endpoint:::: ");
         //update the inventory
         //call the post endpoint on the inventory microservice using rest template/web client
-        final ResponseEntity<Integer> responseEntity = this.restTemplate.postForEntity("http://inventory-microservice/api/v1/inventory", null, Integer.class);
-        log.info("Response from inventory microservice : {} ", responseEntity.getBody());
+      //  final ResponseEntity<Integer> responseEntity = this.restTemplate.postForEntity("http://localhost:9222/api/v1/inventory", null, Integer.class);
+       // log.info("Response from inventory microservice : {} ", responseEntity.getBody());
         return this.orderRepository.save(order);
+    }
+
+    private Order fallBackImpl(Exception exception){
+        log.error("Error while invoking the inventory service:: {}", exception.getMessage());
+        return Order.builder().orderDate(LocalDate.now()).orderId(1111).orderPrice(25000).name("user").emailAddress("user@gmail.com").build();
     }
 
     public Map<String, Object> findAllOrders(int offset, int records, String sortField) {
